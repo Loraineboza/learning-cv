@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 class DogDataset(data.Dataset):
     def __init__(this, path, train=True, transform=None):
-        this.pathi = os.path.join(path, "train" if train else "test")
+        this.path = os.path.join(path, "train" if train else "test")
         this.transform = transform
 
         with open(os.path.join(this.path, "format.json"), "r") as fp:
@@ -75,6 +75,7 @@ for _e in range(epochs):
         lm_count += 1
         loss_mean = 1/lm_count * loss.item() + (1 - 1/lm_count) * loss_mean
         train_tqdm.set_description(f"Epoch [{_e+1}/{epochs}], loss_mean={loss_mean:.3f}")
+
 
 st = model.state_dict()
 torch.save(st, 'model_transfer_resnet.tar')
