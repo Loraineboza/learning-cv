@@ -1,14 +1,7 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from dataset01 import set_
+from torch.utils.data import DataLoader
 import tqdm
-
-class set_(Dataset):
-    def __init__(this, X, y):
-        this.x_i = X; this.y_i = y
-    def __len__(this):
-        return len(this.x_i)
-    def __getitem__(this, i):
-        return this.x_i[i], this.y_i[i]
 
 X = torch.normal(mean=0.0, std=1.0, size=(100, 5))
 y = 3 * X[:, 0:1] - 2 * X[:, 1:2] + .5
