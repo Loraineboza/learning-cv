@@ -1,6 +1,3 @@
-''' 
-    Валидационный тренинг с выборками в пропорции 80/20 с нормальным распределением (среднее 0, std=1) и шумом radn_like
-'''
 from model import dataset, model, EPOCHS
 from torch.utils.data import DataLoader, random_split
 import torch

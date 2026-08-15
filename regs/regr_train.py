@@ -1,7 +1,3 @@
-'''
-    валидационный трейнинг с выборками в пропорции 80/20 с нормальным распределением (среднее 0, std=1) и шумом randn_like
-    с сэйвом checkpoint'ов модель и выбором с лучшим показателем посредством ранней остановки, если валидация превзошла треннинг
-'''
 from model import dataset, model, EPOCHS
 from torch.utils.data import DataLoader, random_split
 import torch
