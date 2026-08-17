@@ -7,6 +7,7 @@ import torchvision.transforms.v2 as tfs_v2
 vgg_weights = models.VGG16_Weights.DEFAULT
 cats = vgg_weights.meta['categories']
 
+
 # transforms_1 = vgg_weights.transforms()
 transforms_2 = tfs_v2.Compose([
     tfs_v2.ToImage(),

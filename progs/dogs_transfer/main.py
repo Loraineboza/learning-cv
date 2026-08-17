@@ -53,10 +53,10 @@ model.fc.requires_grad_(True)
 d_train = DogDataset(r"dataset_dogs", transform=transforms)
 train_data = data.DataLoader(d_train, batch_size=32, shuffle=True)
 
-# обучение 
+# learning 
 optimizer = optim.Adam(params=model.fc.parameters(), lr=0.001, weight_decay=0.001)
 loss_function = nn.CrossEntropyLoss()
-epochs = 3
+epochs = 10
 model.train()
 
 for _e in range(epochs):
@@ -75,12 +75,12 @@ for _e in range(epochs):
         lm_count += 1
         loss_mean = 1/lm_count * loss.item() + (1 - 1/lm_count) * loss_mean
         train_tqdm.set_description(f"Epoch [{_e+1}/{epochs}], loss_mean={loss_mean:.3f}")
-
+        
 
 st = model.state_dict()
 torch.save(st, 'model_transfer_resnet.tar')
 
-# тестирование
+# test
 d_test = DogDataset(r"dataset_dogs", train=False, transform=transforms)
 test_data = data.DataLoader(d_test, batch_size=32, shuffle=False)
 
