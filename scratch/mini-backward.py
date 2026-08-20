@@ -1,3 +1,4 @@
+#!/home/paul/venv/bin/python3
 import numpy as np
 
 X = np.array([3.0]) # signals
