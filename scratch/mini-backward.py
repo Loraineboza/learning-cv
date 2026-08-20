@@ -1,7 +1,7 @@
 import numpy as np
 
-X = np.array([3.0, 1.0, 4.0, 2.0]) # signals
-Y_target = np.array([10.0, 4.0, 13.0, 7.0])  # labels
+X = np.array([3.0]) # signals
+Y_target = np.array([10.0])  # labels
 
 w = 2.0
 b = 1.0
