@@ -23,9 +23,9 @@ def backward(x, y, y_target, w, b):
     dz_dw = x #nW = n
     dz_db = 1.0 #... +/- b = 1
 
-    dL_dw = np.sum(dL_dy * dy_dz * dz_dw) 
-    dL_db = np.sum(dL_dy * dy_dz * dz_db)
-    return dL_dw, dL_db
+    dL_dw = np.sum(dL_dy * dy_dz * dz_dw) #перемножить производные одного направления и про суммировать все эти направления 
+    dL_db = np.sum(dL_dy * dy_dz * dz_db) #аналогично
+    return dL_dw, dL_db #w.grad = dl/dw; dl/db = b.grad
 
 print("Старт обучения")
 print(f"Начальный w = {w}, b = {b}\n")
@@ -34,10 +34,12 @@ for epoch in range(epochs):
     y_pred = forward(X, w, b)
     L = loss(y_pred, Y_target)
 
-    dL_dw, dL_db = backward(X, y_pred, Y_target, w, b)
+    dL_dw, dL_db = backward(X, y_pred, Y_target, w, b) #дифференцирование для w и bias. найти dl/dw и dl/db после чего оптимизировать 
+    #w и bias на эти производные 
 
-    w -= lr * dL_dw
-    b -= lr * dL_db
+    w -= lr * dL_dw # != градиент, потому что w является скаляром, где shape=(1,). 
+    #А из скаляра невозможно построить вектор производных (др. словами градиент), потому что производная только одна 
+    b -= lr * dL_db# аналогично, bias.grad не является градиентом
 
     if epoch % 10 == 0 or epoch == epochs - 1:
         print(f"Epoch {epoch:3d} | Loss = {L:.6f} | w = {w:.6f} | b = {b:.6f}")
