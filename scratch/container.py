@@ -31,7 +31,7 @@ class Linear:
         return X @ self.W + self.b
     
     def backward(self, dl_dy):
-        # dl_dy - это градиент, который пришел с предыдущего слоя (или с функции потерь)
+        # dl_dy это градиент, который пришел с предыдущего слоя (или с функции потерь)
         # В forward я делал X @ W + b. Мне нужно найти производные по W, b и X.
         
         # Каждый вес W[i,j] участвует во всех yN (для всех строк X). Поэтому его градиент 
@@ -54,7 +54,7 @@ class Linear:
         return self.dX
 
     def update(self, lr):
-        # градиентный спуск: обновляю веса и смещения в сторону уменьшения Loss
+        # градиентный спуск: обновляю веса и смещения в сторону антиградиента, чтобы уменьшить loss
         self.W = self.W - lr * self.dW
         self.b = self.b - lr * self.db 
 
@@ -115,7 +115,9 @@ for e in range(epochs):
     loss = mse(pred, target)
     dL_dpred = mse.backward()
     
-    # Я передаю dL/dpred в model.backward().
+    # Я передаю dL/dpred в model.backward(), где pred это y, то есть результаты каждого линейного преобразования.
+    # суть в том, чтобы найти производные каждого yN. Матрицу для каждого yN (dL/dY) возвращает backward от MSE класса. 
+
     # Внутри Sequential.backward() этот градиент последовательно проходит через все слои в обратном порядке.
     # Каждый слой вычисляет свой dL/dW, dL/db и возвращает dL/dX для предыдущего слоя.
     # В итоге все градиенты накапливаются в каждом слое (в self.dW, self.db).
@@ -124,5 +126,7 @@ for e in range(epochs):
 
     if e % 100 == 0:
         print(f"loss = {loss:.10f}")
+    elif e == (epochs-2):
+        print(f"[final] loss = {loss:.10f}")
 
 print(f"\npred = {pred.tolist()}")
