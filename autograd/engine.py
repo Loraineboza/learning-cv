@@ -6,33 +6,33 @@ class Tensor:
         self.grad = np.zeros_like(self.data) #матрица данных.shape == градиент.shape 
         self.op = op
         self.parents = parents
+        self.backward = lambda: None
     def __add__(self, other):
         ret = Tensor(self.data + other.data, '+', self, other)
+        def _backward():
+            self.grad += ret.grad  
+            other.grad += ret.grad
+        ret.backward = _backward
         return ret
 
     def __mul__(self, other):
         ret = Tensor(self.data * other.data, '*', self, other)
+        def _backward():
+            self.grad += ret.grad * other.data
+            other.grad += ret.grad * self.data
+        ret.backward = _backward
         return ret 
 
-    def backward(self):
-        if self.op == "+":
-            for parent in self.parents:
-                parent.grad += self.grad
-                parent.backward()
-        if self.op == "*":
-            for i in range(len(self.parents)):
-                self.parents[i].grad += self.grad * self.parents[0 if i > 0 else 1].data 
-                self.parents[i].backward()
 
 a = Tensor(2)
 b = Tensor(3)
 
-c = a * b
-d = c * a
+c = a + b
+d = a * c
 
 d.grad = 10
+
 d.backward()
 
-print("a.grad =", a.grad) #dl/dd = 10; dd/da = c;  
-print("b.grad =", b.grad)
-print("c.grad =", c.grad)
+print(a.grad)
+print(c.grad)
