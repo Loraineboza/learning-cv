@@ -7,19 +7,24 @@ class Tensor:
         self.op = op
         self.parents = parents
         self.backward = lambda: None
+
     def __add__(self, other):
         ret = Tensor(self.data + other.data, '+', self, other)
         def _backward():
-            self.grad += ret.grad  
-            other.grad += ret.grad
+            for parent in ret.parents:
+                parent.grad += self.grad
+                parent.backward()
+
         ret.backward = _backward
         return ret
 
     def __mul__(self, other):
         ret = Tensor(self.data * other.data, '*', self, other)
         def _backward():
-            self.grad += ret.grad * other.data
-            other.grad += ret.grad * self.data
+            for i in range(len(ret.parents)):
+                ret.parents[i].grad += self.grad * ret.parents[0 if i>0 else 1].data
+                ret.parents[i].backward()
+
         ret.backward = _backward
         return ret 
 
@@ -27,12 +32,10 @@ class Tensor:
 a = Tensor(2)
 b = Tensor(3)
 
-c = a + b
-d = a * c
+d = a * b
 
 d.grad = 10
 
 d.backward()
 
-print(a.grad)
-print(c.grad)
+print(f"a.grad =",a.grad)
