@@ -28,17 +28,19 @@ class Tensor:
         ret.backward = _backward
         return ret 
 
-
+graph =сцсц.zeros(0)
+def build_graph(tensor): #постройка графа: поиск всех зависимых от <tensor> объектов, которые идут в последовательном неповторяющийся порядке
+    global graph
+    for i in tensor.parents:
+        if not(i in graph):
+            graph = np.append(graph, i)
+        build_graph(i)
+    return graph
+    
 a = Tensor(2)
 b = Tensor(3)
 
 c = a + b
 d = a * c
 
-d.grad = 10
-
-d.backward()
-
-print(f"a.grad =",a.grad)
-print(f"b.grad =",b.grad)
-print(f"c.grad =",c.grad)
+print(build_graph(d))
