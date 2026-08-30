@@ -12,7 +12,7 @@ class Tensor:
         ret = Tensor(self.data + other.data, '+', self, other)
         def _backward():
             for parent in ret.parents:
-                parent.grad += self.grad
+                parent.grad += ret.grad
                 parent.backward()
 
         ret.backward = _backward
@@ -22,7 +22,7 @@ class Tensor:
         ret = Tensor(self.data * other.data, '*', self, other)
         def _backward():
             for i in range(len(ret.parents)):
-                ret.parents[i].grad += self.grad * ret.parents[0 if i>0 else 1].data
+                ret.parents[i].grad += ret.grad * ret.parents[0 if i>0 else 1].data
                 ret.parents[i].backward()
 
         ret.backward = _backward
@@ -32,10 +32,13 @@ class Tensor:
 a = Tensor(2)
 b = Tensor(3)
 
-d = a * b
+c = a + b
+d = a * c
 
 d.grad = 10
 
 d.backward()
 
 print(f"a.grad =",a.grad)
+print(f"b.grad =",b.grad)
+print(f"c.grad =",c.grad)
