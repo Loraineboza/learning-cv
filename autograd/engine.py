@@ -47,7 +47,7 @@ class Tensor:
 
         def backward():
             for i in range(len(ret.parents)):
-                #dl/dx = dl/dy @ W.T; dl/dw = X.T @ W.T. Применено транспонирование для поиска производных каждого элемента 
+                #dl/dx = dl/dy @ W.T; dl/dw = X.T @ dl/dy. Применено транспонирование для поиска производных каждого элемента 
                 #соответствующих матриц
                 ret.parents[i].grad += ret.grad @ ret.parents[1].data.T if i==0 else ret.parents[0].data.T @ ret.grad
 
