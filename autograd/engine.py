@@ -85,7 +85,7 @@ class Tensor:
         return other + (-self)
 
     def __neg__(self):
-        #унарный минус. Требуется для использования __add__ вместо минуса, так как вызывается __add__ для минуса: sЖelf + (-other)
+        #унарный минус. Требуется для использования __add__ вместо минуса: self + (-other)
         return self * -1 #-self
 
     def __rmul__(self, other):
