@@ -7,10 +7,12 @@ class Tensor:
         self.op = op
         self.parents = parents
         self._backward = lambda: None
+    
 
     def __add__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         ret = Tensor(self.data + other.data, '+', self, other)
+
         def backward():
             for parent in ret.parents:
                 parent.grad += ret.grad
@@ -21,6 +23,7 @@ class Tensor:
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         ret = Tensor(self.data * other.data, '*', self, other)
+
         def backward():
             for i in range(len(ret.parents)):
                 ret.parents[i].grad += ret.grad * ret.parents[0 if i>0 else 1].data
@@ -29,16 +32,30 @@ class Tensor:
         return ret
     
     
+    def __matmul__(self, other):
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        ret = Tensor(np.matmul(self.data, other.data), '@', self, other)
+
+        def backward():
+            for i in range(len(ret.parents)):
+                ret.parents[i].grad += ret.grad * ret.parents[1].data.T if i==0 else ret.parents[0].data.T * ret.grad
+
+        ret._backward = backward
+        return ret 
+
+
     def __pow__(self, other):
         ret = Tensor(self.data ** other, '**', self)
+
         def backward():
             self.grad += ret.grad * other * (self.data ** (other - 1))
 
         ret._backward = backward 
         return ret 
+
     def backward(self):
         graph = build_graph(self)
-        self.grad = 1
+        self.grad = np.ones_like(self.data)
         for tensor in graph[::-1]: 
             tensor._backward()
     
@@ -66,13 +83,42 @@ def build_graph(tensor, graph=None): #постройка графа: поиск 
         graph.append(tensor)
     return graph
 
-a = Tensor(2)
+X = Tensor([
+    [1.0, 2.0],
+    [3.0, 4.0]
+])
 
-b = a ** 3
-c = b + 5
-d = c * 2
-e = -d
+W = Tensor([
+    [5.0, 6.0],
+    [7.0, 8.0]
+])
 
-e.backward()
+Y = X @ W
 
-print(a.grad)
+Y.grad = np.ones_like(Y.data)
+
+Y.backward()
+
+print("Y =")
+print(Y.data)
+
+print("X.grad =")
+print(X.grad)
+
+print("W.grad =")
+print(W.grad)
+
+'''
+x.grad = dl/dy * w.T 
+то есть если y = x @ w, тогда
+dy/dx00 = w00(5)
+dy/dx01 = w10(7)
+dy/dx10 = w01(6)
+dy/dx11 = w11(8)
+
+аналогично для w:
+    dy/dw00 = x00
+    dy/w10 = x01
+    dy/w01 = x10
+    dy/w11 = x11
+''' 
