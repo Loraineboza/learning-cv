@@ -2,21 +2,28 @@ import numpy as np
 
 class Tensor:
     def __init__(self, data, op='', *parents):
-        self.data = np.array(data)
-        self.grad = np.zeros_like(self.data) #матрица данных.shape == градиент.shape 
-        self.op = op
-        self.parents = parents
-        self._backward = lambda: None
+        self.data = np.array(data) #<Tensor>-объект
+        self.grad = np.zeros_like(self.data) #матрица данных.shape (data.shape) == градиент.shape (self.grad.shape) 
+        self.op = op #+/-/*/@/**/-x/ etc.
+        self.parents = parents #родители-операнды, создавшие ret 
+        self._backward = lambda: None #лямба, которая вызывает соответствующую backward ф-ию для каждого <Tensor> объекта, который был 
+                                      #создан через определенную мат. операцию. Необходима для подсчета производных, учитывая знак  
     
 
     def __add__(self, other):
-        other = other if isinstance(other, Tensor) else Tensor(other)
+        #является ли аргумент other типом <Tensor>. В противном случае подается как скаляр (например степень это константа, поэтому 
+        #подается в виде скаляра)
+        other = other if isinstance(other, Tensor) else Tensor(other) 
+        #создается объект <Tensor> с потомками, операнды которые его создали (поэтому дал название не children, а parents. Но это на свой выбор ;D)) 
         ret = Tensor(self.data + other.data, '+', self, other)
 
         def backward():
+            #операндов, создавшие ret максимум 2. Однако цикл я все равно поставил, чтобы не повторятся для более сложных вычислений производных и градиентов (см. ниже)
             for parent in ret.parents:
+                #dl/da = dl/dy * 1
                 parent.grad += ret.grad
-
+        #сохранение лямбды для соответствующего маг. метода. Позже основной (main) backward вызевет каждую _backward лямбду для каждого 
+        #соответствующего метода, чтобы подсчитать производные для каждого <Tensor>-объекта (.grad)
         ret._backward = backward
         return ret
 
@@ -26,42 +33,50 @@ class Tensor:
 
         def backward():
             for i in range(len(ret.parents)):
+                #dl/da = dl/dy * dy/db. Производная по 1-ому объекту равна произведению между dl/dy и значению 2-ого объекта 
+                #та же логика и для 2-ого объекта. Меняются местами лишгь условия
                 ret.parents[i].grad += ret.grad * ret.parents[0 if i>0 else 1].data
 
         ret._backward = backward
         return ret
     
-    
+    #<Tensor> @ <Tensor>
     def __matmul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         ret = Tensor(np.matmul(self.data, other.data), '@', self, other)
 
         def backward():
             for i in range(len(ret.parents)):
-                ret.parents[i].grad += ret.grad * ret.parents[1].data.T if i==0 else ret.parents[0].data.T * ret.grad
+                #dl/dx = dl/dy @ W.T; dl/dw = X.T @ W.T. Применено транспонирование для поиска производных каждого элемента 
+                #соответствующих матриц
+                ret.parents[i].grad += ret.grad @ ret.parents[1].data.T if i==0 else ret.parents[0].data.T @ ret.grad
 
         ret._backward = backward
         return ret 
 
-
+    #<Tensor> ** 2
     def __pow__(self, other):
+        #other является скаляром, поэтому не учитывается и не создается в виде отдельного <Tensor>-объекта 
         ret = Tensor(self.data ** other, '**', self)
 
         def backward():
+            #dl/da = dl/dy * 2 * b, где 2 это степень(как пример), а b это ее основание (исходное выражение b^2)
+            #степень - константа, поэтому она сдвигается влево и представляется множителем для основания
             self.grad += ret.grad * other * (self.data ** (other - 1))
 
         ret._backward = backward 
-        return ret 
+        return ret
 
+    #main backward
     def backward(self):
-        graph = build_graph(self)
-        self.grad = np.ones_like(self.data)
-        for tensor in graph[::-1]: 
-            tensor._backward()
+        graph = build_graph(self) #граф из <Tensor> последовательных объектов 
+        self.grad = np.ones_like(self.data) #по умолчению градиент dl/dself равен 1. Размерность сохраняется
+        for tensor in graph[::-1]: #вызвать backward лямбду у каждого <Tensor> объекта (кроме степени) в графе
+            tensor._backward() 
     
-    def __truediv__(self, other):
+    def __truediv__(self, other): 
         return self * other**-1 #self/other
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other): 
         return other * self**-1
 
     def __sub__(self, other):
@@ -70,11 +85,17 @@ class Tensor:
         return other + (-self)
 
     def __neg__(self):
+        #унарный минус. Требуется для использования __add__ вместо минуса, так как вызывается __add__ для минуса: sЖelf + (-other)
         return self * -1 #-self
+
     def __rmul__(self, other):
         return self * other
 
-def build_graph(tensor, graph=None): #постройка графа: поиск всех зависимых от <tensor> объектов, которые идут в последовательном неповторяющийся порядке
+#постройка графа: поиск всех зависимых <Tensor>-объектов, 
+#которые идут в последовательном неповторяющийся порядке. 
+
+#Необходим для правильного порядка вызовов лямбд _backwawrd всех <Tensor>-объектов  
+def build_graph(tensor, graph=None):                                      
     if graph is None:
         graph = []
     if tensor not in graph:
@@ -110,7 +131,7 @@ print(W.grad)
 
 '''
 x.grad = dl/dy * w.T 
-то есть если y = x @ w, тогда
+если y = x @ w, тогда
 dy/dx00 = w00(5)
 dy/dx01 = w10(7)
 dy/dx10 = w01(6)
