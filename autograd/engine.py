@@ -22,7 +22,7 @@ class Tensor:
             for parent in ret.parents:
                 #dl/da = dl/dy * (+/-)1
                 parent.grad += ret.grad
-        #сохранение лямбды для соответствующего маг. метода. Позже основной (main) backward вызевет каждую _backward лямбду для каждого 
+        #сохранение лямбды для соответствующего маг. метода. Позже основной (main) backward вызевет каждую _backward лямбду из каждого 
         #соответствующего метода, чтобы подсчитать производные для каждого <Tensor>-объекта 
         ret._backward = backward
         return ret
@@ -33,7 +33,7 @@ class Tensor:
 
         def backward():
             for i in range(len(ret.parents)):
-                #dl/da = dl/dy * dy/db. Производная по 1-ому объекту равна произведению между dl/dy и значению 2-ого объекта 
+                #dl/da = dl/dy * dy/db. Производная по 1-ому объекту равна произведению между dl/dy и значению 2-ого объекта.
                 #та же логика и для 2-ого объекта. Меняются местами лишгь условия
                 ret.parents[i].grad += ret.grad * ret.parents[0 if i>0 else 1].data
 
@@ -104,42 +104,19 @@ def build_graph(tensor, graph=None):
         graph.append(tensor)
     return graph
 
+
+
 X = Tensor([
     [1.0, 2.0],
-    [3.0, 4.0]
+    [3.0, 4.0],
+    [5.0, 6.0]
 ])
 
-W = Tensor([
-    [5.0, 6.0],
-    [7.0, 8.0]
-])
+b = Tensor([10.0, 20.0])
 
-Y = X @ W
-
-Y.grad = np.ones_like(Y.data)
+Y = X + b
 
 Y.backward()
 
-print("Y =")
-print(Y.data)
-
-print("X.grad =")
 print(X.grad)
-
-print("W.grad =")
-print(W.grad)
-
-'''
-x.grad = dl/dy * w.T 
-если y = x @ w, тогда
-dy/dx00 = w00(5)
-dy/dx01 = w10(7)
-dy/dx10 = w01(6)
-dy/dx11 = w11(8)
-
-аналогично для w:
-    dy/dw00 = x00
-    dy/w10 = x01
-    dy/w01 = x10
-    dy/w11 = x11
-''' 
+print(b.grad)
