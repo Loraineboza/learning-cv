@@ -2,7 +2,7 @@ import numpy as np
 
 class Tensor:
     def __init__(self, data, op='', *parents):
-        self.data = np.array(data) #<Tensor>-объект
+        self.data = np.array(data) #numpy array
         self.grad = np.zeros_like(self.data) #матрица данных.shape (data.shape) == градиент.shape (self.grad.shape) 
         self.op = op #+/-/*/@/**/-x/ etc.
         self.parents = parents #родители-операнды, создавшие ret 
