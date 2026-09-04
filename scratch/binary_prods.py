@@ -4,28 +4,26 @@ class Binary_cross_entropy:
     def __init__(self):
         pass
 
-    def bce(pred, true):
+    def bce(self, pred, true):
         pred = np.array(pred)
         true = np.array(true)
         eps = 1e-15 #эпсилион -число с 15 нулями впереди
         pred = np.clip(pred, eps, 1-eps) #Если pred < eps: pred=eps; иначе если pred > 1-eps: pred=1-eps
         loss = -np.mean(true * np.log(pred) + (1 - true) * np.log(1 - pred))
+        self.pred = pred
+        self.true = true
+
         return loss 
 
-    def backward(pred, true):
-        pred = np.array(pred)
-        true = np.array(true)
-        pred = np.clip(pred, 1e-15, 1- 1e-15)
-
+    def backward(self):
         #найти произвольные по матрешке: если встречается ф-я, найти производную самой ф-ии и потом для ее операндов. Производные перемножить, если они от одной ф-ии
         #dlog(x) = 1/x
-
-        prod1 = true * 1/pred
-        prod2 = (1-true) * (1/1-pred) * (-1)
+        prod1 = self.true * 1/self.pred
+        prod2 = (1-self.true) * (1/1-self.pred) * (-1)
         dl_dz = -(prod1 + prod2)
         
 
-        return dl_dz / len(true)
+        return dl_dz / len(self.true)
 
 class Sigmoid:
     def __init__(self):
@@ -65,7 +63,7 @@ class Sigmoid:
         
         #применяем цепное правило: перемножаем все производные
         #ds/dx = (ds/du) * (du/dv) * (dv/dw) * (dw/dx)
-        return prod1 * prod2 * prod3 * prod4turn prod1 * prod2 * prod3 * prod
+        return prod1 * prod2 * prod3 * prod4
 
 class Linear:
     def __init__(self, in_channels, out_channels):
