@@ -1,6 +1,8 @@
 import numpy as np 
 from graphviz import Digraph 
 from F import MSE, Binary_cross_entropy 
+import sys
+
 def debug_op(str): 
     print(f"operation is {str}") 
 
@@ -18,10 +20,10 @@ class Box:
         ch = Box(self.data @ other.data, (self, other))
         
         def backward():
-            self.data.grad += ch.grad @ other.data
-            self.other.grad += self.data @ ch.grad 
+            self.grad += ch.grad @ other.data
+            self.grad += self.data @ ch.grad 
 
-        ch._backward = backward
+        ch._backward = backward()
         return ch
     
     def __rmatmul__(self, other):
@@ -31,7 +33,9 @@ class Box:
         ch = Box(self.data + other.data, (self, other), '+')
 
         def backward():
-            self.data.grad += ch.grad +1; other.data.grad += ch.grad +1
+            print("backward of sub")
+            self.grad += ch.grad +1
+            other.grad += ch.grad +1
 
         ch._backward = backward()
         return ch
@@ -41,9 +45,10 @@ class Box:
 
         def backward():
             print("backward of sub")
-            self.data.grad += ch.grad -1; other.data.grad += ch.grad -1
+            self.grad += ch.grad -1
+            other.grad += ch.grad -1
 
-        ch._backward = backward
+        ch._backward = backward()
 
         return ch
     def __neg__(self):
@@ -53,11 +58,30 @@ class Box:
         return f"{self.name}:\ndata = \n{self.data}\ngrad = \n{self.grad}\n\n"
 
     def backward(self):
-        for parent in self.parents:
-            print(parent)  
-            parent._backward()
+        graph = build_graph(self)
+        for parent in graph:
+            print(f"\nparent:\n{parent}")  
+            parent._backward
             parent.backward()
+
+def build_graph(x, graph=[]):
+    if not hasattr(x, "parents"):
+        print("object 'x' does not have the 'parents' attribute")
+        sys.exit(1) 
+    for parent in x.parents:
+        if parent not in graph:
+            graph.append(parent)
+        build_graph(parent, graph)
+    return graph[::-1]
+
 x = Box([3], name='x')
 w = Box([2], name='w')
-own = x - w
+b = x + w
+b.name="b"
+
+own = b - x
+own.name="own" 
+
+own.grad = 1
+
 own.backward()
