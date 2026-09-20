@@ -1,5 +1,5 @@
 import numpy as np
-from view import (
+from im2col import (
     Conv2D, BatchNorm2D, LeakyReLU, MaxPool2D,
     Flatten, Linear, CrossEntropyLoss, SGD,
 )
