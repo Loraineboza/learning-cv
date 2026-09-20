@@ -2,7 +2,7 @@ import numpy as np
 
 
 def im2col(x, kh, kw, stride, pad):
-    """x: (N,C,H,W) -> (N*OH*OW, C*kh*kw)"""
+    # x: (N,C,H,W) -> (N*OH*OW, C*kh*kw)
     N, C, H, W = x.shape
     x_pad = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
     OH = (H + 2 * pad - kh) // stride + 1
@@ -49,7 +49,7 @@ class Conv2D:
             for j in range(self.k):
                 dx[:, :, i:i + self.stride * OH:self.stride,
                        j:j + self.stride * OW:self.stride] += dcols[:, :, i, j]
-        # аккуратный срез до исходного H, W (безопасно и при pad=0, и при нечётных размерах)
+        # аккуратный срез до исходного H, W (безопасно и при pad=0, и при нечетных размерах)
         return dx[:, :, self.pad:self.pad + H, self.pad:self.pad + W]
 
 
@@ -138,7 +138,7 @@ class LeakyReLU:
 
 
 class Upsample:
-    """Nearest-neighbor ×2."""
+    # Nearest-neighbor ×2
 
     def __init__(self, scale=2):
         self.scale = scale
@@ -185,7 +185,7 @@ def softmax(x, axis=-1):
 
 
 class CrossEntropyLoss:
-    """logits: (N, C), targets: (N,) — индексы классов."""
+    # logits: (N, C), targets: (N,) — индексы классов
 
     def __init__(self):
         self._probs = None
@@ -208,8 +208,7 @@ class CrossEntropyLoss:
 
 
 class SGD:
-    """SGD с momentum и weight decay. params — список слоёв с .W/.b/.gamma/.beta."""
-
+    # SGD с momentum и weight decay. params — список слоев с .W/.b/.gamma/.beta
     def __init__(self, params, lr=1e-3, momentum=0.9, weight_decay=0.0):
         self.params = params
         self.lr = lr
@@ -234,3 +233,4 @@ class SGD:
 
     def zero_grad(self):
         self._v = {}
+
