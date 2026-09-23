@@ -16,22 +16,23 @@ fc = Linear(8 * 8 * 8, 10)
 loss_fn = CrossEntropyLoss()
 opt = SGD([conv, bn, fc], lr=1e-3)
 
-for step in range(20):
-    h = conv.forward(x)
-    h = bn.forward(h)
-    h = act.forward(h)
-    h = pool.forward(h)
-    h = flat.forward(h)
-    logits = fc.forward(h)
-    loss = loss_fn.forward(logits, y)
+for step in range(20)
+    h = conv.forward(x) # h = conv(x)
+    h = bn.forward(h) # h = bn(h)
+    h = act.forward(h) # h = act(h)
+    h = pool.forward(h) # h = pool(h)
+    h = flat.forward(h)   # h = flat(h) = flatten(h)
+    logits = fc.forward(h) # logits = fc(h)
+    loss = loss_fn.forward(logits, y)  # loss = L(logits, y)
 
-    d = loss_fn.backward()
-    d = fc.backward(d)
-    d = flat.backward(d)
-    d = pool.backward(d)
-    d = act.backward(d)
-    d = bn.backward(d)
-    conv.backward(d)
-    opt.step()
+    # Backward pass
+    d = loss_fn.backward()# dL/dlogits
+    d = fc.backward(d) # dL/dh (перед fc) = dL/dlogits * dlogits/dh
+    d = flat.backward(d) # dL/dh (перед flat) = dL/dh_after_flat * dh_after_flat/dh_before_flat
+    d = pool.backward(d) # dL/dh (перед pool) = dL/dh_after_pool * dh_after_pool/dh_before_pool
+    d = act.backward(d) # dL/dh (перед act) = dL/dh_after_act * dact/dh_before_act
+    d = bn.backward(d) # dL/dh (перед bn) = dL/dh_after_bn * dbn/dh_before_bn
+    conv.backward(d) # dL/dx (и dL/dW_conv, dL/db_conv внутри)
+    opt.step() # W -= lr * dL/dW
 
     print(step, loss)
