@@ -68,7 +68,7 @@ class Sigmoid:
 class Linear:
     def __init__(self, in_channels, out_channels):
         self.W = np.random.randn(in_channels, out_channels)
-        self.bias = np.random.randn(in_channels, out_channels)
+        self.bias = np.random.randn(1, out_channels)
     
     def forward(self, X):
         self.X = X
