@@ -4,8 +4,8 @@ from im2col import (
     Flatten, Linear, CrossEntropyLoss, SGD,
 )
 
-x = np.random.randn(8, 3, 16, 16).astype(np.float32)
-y = np.random.randint(0, 10, size=8)
+x = np.random.randn(8, 3, 16, 16).astype(np.float32) # .png 16x16, RGB; 8 batch
+y = np.random.randint(0, 10, size=8) # true "logits"
 
 conv = Conv2D(3, 8, k=3, stride=1, pad=1)
 bn = BatchNorm2D(8)
