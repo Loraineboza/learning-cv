@@ -1,3 +1,8 @@
+'''
+dL/dx[...](or w[...]) = dL/dlogits * dlogits/dh_fc * dh_fc/dh_flat * 
+dh_flat/dh_pool * dh_pool/dh_act * dh_act/dh_bn * dh_bn/dh_conv * dh_conv/dx
+'''
+
 import numpy as np
 from im2col import (
     Conv2D, BatchNorm2D, LeakyReLU, MaxPool2D,
