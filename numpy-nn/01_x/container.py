@@ -22,9 +22,10 @@ class Sequential:
                 layer.update(lr)
 
 class Linear:
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, bias=True):
         self.W = np.random.randn(in_channels, out_channels)
-        self.b = np.random.randn(out_channels)
+        if bias:
+            self.b = np.random.randn(out_channels)
 
     def __call__(self, X):
         self.X = X
@@ -59,17 +60,22 @@ class Linear:
         self.b = self.b - lr * self.db 
 
 class MSE:
-    def __init__(self):
-        pass
+    def __init__(self, reduction="mean"):
+        self.reduction = reduction
     def __call__(self, pred, target):
-        self.pred = pred
-        self.target = target
-        return np.mean((pred - target) ** 2)
+        self.pred = pred; self.target = target
+        if self.reduction=="sum":
+            return np.sum((pred - target) ** 2)
+        else if self.reduction=="mean":
+            return np.mean((pred - target) ** 2)
+        return ((pred - target) ** 2)
 
     def backward(self):
-        # производная MSE по предсказаниям: dL/dpred = 2 * (pred - target) / n
-        # Делю на len(pred) потому что в forward я брал среднее (mean)
-        return 2 * (self.pred - self.target) / len(self.pred)
+        # dL/dpred = 2 * (pred - target) / n, если reduction == mean, иначе 2 * (pred - target), поскольку не надо делить на размер предсказания, 
+        # так как применяется сумма. Та же производная равна и для reduction == "none"
+        return (2 * (self.pred - self.target) / len(self.pred)) if self.reduction=="mean" else 2 * (self.pred - self.target) 
+        
+        
 
 class ReLU:
     def __init__(self):
@@ -101,12 +107,12 @@ target = np.array([
 ])
 
 model = Sequential(
-    Linear(2, 3),
+    Linear(2, 3, bias=True),
     ReLU(),
-    Linear(3, 1)
+    Linear(3, 1, bias=True)
 )
 
-mse = MSE()
+mse = MSE(reduction="mean")
 lr = 0.01
 epochs = 1000
 
