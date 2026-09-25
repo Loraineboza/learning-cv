@@ -6,10 +6,12 @@ def debug_op(s):
     print(f"operation is {s}")
 
 def _broadcast_grad(grad, shape):
+    # приведение градиента к форме операнда с учётом broadcasting
     if grad.shape == shape:
         return grad
-    while grad.ndim < len(shape):
-        grad = np.expand_dims(grad, axis=0)
+    # суммирование по лишним ведущим осям
+    while grad.ndim > len(shape):
+        grad = grad.sum(axis=0)
     axis = tuple(i for i, (g, s) in enumerate(zip(grad.shape, shape)) if g != s and s == 1)
     if axis:
         grad = grad.sum(axis=axis, keepdims=True)
@@ -17,21 +19,51 @@ def _broadcast_grad(grad, shape):
         grad = grad.reshape(shape)
     return grad
 
+def _unbroadcast(grad, target_shape, axis, keepdims):
+    # обратное преобразование градиента после sum/mean по осям
+    if axis is not None and not keepdims:
+        shape = list(target_shape)
+        for ax in (axis if isinstance(axis, (list, tuple)) else [axis]):
+            shape[ax] = 1
+        grad = grad.reshape(shape)
+        grad = np.broadcast_to(grad, target_shape).copy()
+    elif axis is None and not keepdims:
+        # скалярный sum/mean: градиент константен по всем элементам
+        val = float(grad) if np.ndim(grad) == 0 else grad
+        grad = np.full(target_shape, val, dtype=float)
+    return grad
+
 class Tensor:
-    def __init__(self, data, parents=(), op='', name='None', requires_grad=True):
+    def __init__(self, data, parents=(), op='', name=None, requires_grad=True):
         self.data = np.array(data, dtype=float)                     # numpy-массив данных
         self.grad = np.zeros_like(self.data, dtype=float)           # градиент той же формы, что и data: grad.shape == data.shape
         self.parents = tuple(parents)                               # кортеж родительских <Tensor>-объектов (операндов), породивших данный узел
-        self._backward = lambda: None                               # лямбда-функция, реализующая локальное правило обратн:ого прохода для данной операции; вызывается в основном backward()
+        self._backward = lambda: None                               # лямбда-функция, реализующая локальное правило обратного прохода для данной операции; вызывается в основном backward()
         self.name = name                                            # символьное имя узла (для отладки/визуализации)
-        self.op = op                                                # символьное обозначение операции: '+', '-', '*', '@', '**', 'neg', 'sum', 'sigmoid' и т.д.
+        self.op = op                                                # символьное обозначение операции: '+', '-', '*', '**', 'neg', 'sum', 'sigmoid' и т.д.
         self.requires_grad = requires_grad                          # флаг: требуется ли вычислять градиент для данного узла
+
+    def zero_grad(self):
+        # обнуление градиента узла
+        self.grad = np.zeros_like(self.data, dtype=float)
 
     def _ensure_tensor(self, x):
         # приведение other к <Tensor>, если это скаляр; обеспечивает единообразие интерфейса
         if isinstance(x, Tensor):
             return x
         return Tensor(np.array(x, dtype=float), requires_grad=False)
+
+    def T(self):
+        # транспонирование: ret = self.T
+        ret = Tensor(self.data.T, (self,), 'T')
+
+        def backward():
+            # d(self.T)/dself = transpose(grad)
+            if self.requires_grad:
+                self.grad += ret.grad.T
+
+        ret._backward = backward
+        return ret
 
     def __add__(self, other):
         # приведение other к <Tensor>, если это скаляр; обеспечивает единообразие интерфейса
@@ -71,7 +103,8 @@ class Tensor:
 
     def __rsub__(self, other):
         # реализация через унарный минус и сложение: other - self ≡ (-self) + other
-        return (-self) + other
+        other = self._ensure_tensor(other)
+        return other - self
 
     def __mul__(self, other):
         other = self._ensure_tensor(other)
@@ -80,9 +113,9 @@ class Tensor:
         def backward():
             # правило произведения: d(self*other)/dself = other, d(self*other)/dother = self
             if self.requires_grad:
-                self.grad += ret.grad * other.data
+                self.grad += _broadcast_grad(ret.grad * other.data, self.data.shape)
             if other.requires_grad:
-                other.grad += ret.grad * self.data
+                other.grad += _broadcast_grad(ret.grad * self.data, other.data.shape)
 
         ret._backward = backward
         return ret
@@ -90,31 +123,6 @@ class Tensor:
     def __rmul__(self, other):
         # коммутативность умножения: other * self ≡ self * other
         return self * other
-
-    def __matmul__(self, other):
-        # матричное умножение: self @ other; проверка совместимости размеров
-        other = self._ensure_tensor(other)
-        if self.data.ndim < 2 or other.data.ndim < 2 or self.data.shape[1] != other.data.shape[0]:
-            raise ValueError("матрицы не совместимы для @ операции")
-        # создание узла: ret = self @ other
-        ret = Tensor(self.data @ other.data, (self, other), '@')
-
-        def backward():
-            # правило дифференцирования матричного произведения:
-            # d(self@other)/dself = dL/dret @ other.T
-            # d(self@other)/dother = self.T @ dL/dret
-            if self.requires_grad:
-                self.grad += ret.grad @ other.data.T
-            if other.requires_grad:
-                other.grad += self.data.T @ ret.grad
-
-        ret._backward = backward
-        return ret
-
-    def __rmatmul__(self, other):
-        # правое матричное умножение: other @ self
-        other = self._ensure_tensor(other)
-        return other @ self
 
     def __pow__(self, other):
         # возведение в степень: other может быть скаляром или <Tensor>; градиент по other не считается
@@ -159,43 +167,23 @@ class Tensor:
         out = Tensor(self.data.sum(axis=axis, keepdims=keepdims), (self,), 'sum')
 
         def backward():
+            # градиент от sum переносится на все элементы с учётом осей
             if self.requires_grad:
-                grad = out.grad
-                if axis is not None and not keepdims:
-                    # восстановление размерностей через broadcast
-                    shape = list(self.data.shape)
-                    for ax in (axis if isinstance(axis, (list, tuple)) else [axis]):
-                        shape[ax] = 1
-                    grad = grad.reshape(shape)
-                    grad = np.broadcast_to(grad, self.data.shape).copy()
-                elif not keepdims:
-                    # скалярный sum: градиент константен по всем элементам
-                    val = float(out.grad) if out.grad.ndim == 0 else out.grad
-                    grad = np.full_like(self.data, val)
-                self.grad += grad
+                self.grad += _unbroadcast(out.grad, self.data.shape, axis, keepdims)
 
         out._backward = backward
         return out
 
     def mean(self, axis=None, keepdims=False):
         # усреднение элементов: ret = mean(self, axis)
-        n = self.data.size if axis is None else np.prod(np.take(self.data.shape, axis))
+        n = self.data.size if axis is None else int(np.prod([self.data.shape[a] for a in (axis if isinstance(axis, (list, tuple)) else [axis])]))
         out = Tensor(self.data.mean(axis=axis, keepdims=keepdims), (self,), 'mean')
 
         def backward():
             # градиент по self: 1/n * градиент от out, с broadcasting обратно до формы self
             if self.requires_grad:
-                grad = out.grad / n
-                if axis is not None and not keepdims:
-                    shape = list(self.data.shape)
-                    for ax in (axis if isinstance(axis, (list, tuple)) else [axis]):
-                        shape[ax] = 1
-                    grad = grad.reshape(shape)
-                    grad = np.broadcast_to(grad, self.data.shape).copy()
-                elif not keepdims:
-                    val = float(out.grad) if out.grad.ndim == 0 else out.grad
-                    grad = np.full_like(self.data, val)
-                self.grad += grad
+                g = out.grad / n
+                self.grad += _unbroadcast(g, self.data.shape, axis, keepdims)
 
         out._backward = backward
         return out
@@ -203,6 +191,7 @@ class Tensor:
     def exp(self):
         # экспонента: ret = exp(self)
         out = Tensor(np.exp(self.data), (self,), 'exp')
+
         def backward():
             # d(exp(x))/dx = exp(x)
             if self.requires_grad:
@@ -212,18 +201,28 @@ class Tensor:
         return out
 
     def log(self, eps=1e-9):
-        # натуральный логарифм с численной стабилизацией: ret = log(self + eps)
-        out = Tensor(np.log(self.data + eps), (self,), 'log')
+        # натуральный логарифм с численной стабилизацией: ret = log(clip(self, eps, +inf))
+        safe = np.clip(self.data, eps, None)
+        out = Tensor(np.log(safe), (self,), 'log')
+
         def backward():
             # d(log(x))/dx = 1/x
             if self.requires_grad:
-                self.grad += out.grad * (1.0 / (self.data + eps))
+                self.grad += out.grad * (1.0 / safe)
 
         out._backward = backward
         return out
 
     def sigmoid(self):
-        out = Tensor(1.0 / (1.0 + np.exp(-self.data)), (self,), 'sigmoid')
+        # численно устойчивая сигмоида
+        x = self.data
+        out_data = np.empty_like(x, dtype=float)
+        pos = x >= 0
+        out_data[pos] = 1.0 / (1.0 + np.exp(-x[pos]))
+        ex = np.exp(x[~pos])
+        out_data[~pos] = ex / (1.0 + ex)
+        out = Tensor(out_data, (self,), 'sigmoid')
+
         def backward():
             # d(sigmoid(x))/dx = sigmoid(x) * (1 - sigmoid(x))
             if self.requires_grad:
@@ -234,6 +233,7 @@ class Tensor:
 
     def tanh(self):
         out = Tensor(np.tanh(self.data), (self,), 'tanh')
+
         def backward():
             # d(tanh(x))/dx = 1 - tanh^2(x)
             if self.requires_grad:
@@ -244,6 +244,7 @@ class Tensor:
 
     def relu(self):
         out = Tensor(np.maximum(0, self.data), (self,), 'relu')
+
         def backward():
             # d(ReLU(x))/dx = 1 при x > 0, иначе 0
             if self.requires_grad:
@@ -255,20 +256,24 @@ class Tensor:
 
     def backward(self):
         # основной обратный проход: топологическая сортировка графа + применение локальных правил дифференцирования
+        # итеративная топологическая сортировка (без рекурсии — не падает на глубоких графах)
         topo = []
         visited = set()
-        def build_topo(v):
-            # рекурсивный обход в глубину для построения топологического порядка
-            if id(v) in visited:
-                return
-            visited.add(id(v))
-            for p in v.parents:
-                build_topo(p)
-            topo.append(v)
-
-        build_topo(self)
+        stack = [(self, False)]
+        while stack:
+            node, processed = stack.pop()
+            if processed:
+                topo.append(node)
+                continue
+            if id(node) in visited:
+                continue
+            visited.add(id(node))
+            stack.append((node, True))
+            for p in node.parents:
+                if id(p) not in visited:
+                    stack.append((p, False))
         # инициализация градиента выхода: dL/dself = 1
-        self.grad = np.ones_like(self.data)
+        self.grad = np.ones_like(self.data, dtype=float)
         # обратный проход по топологически отсортированному графу
         for node in reversed(topo):
             if node.requires_grad:
@@ -276,8 +281,6 @@ class Tensor:
 
     def __repr__(self):
         # строковое представление узла: имя, данные, градиент
-        return f"{self.name}:\ndata = \n{self.data}\ngrad = \n{self.grad}\n"
-
-
-
-
+        return (f"{self.name}:\n"
+                f"data =\n{np.array2string(self.data, precision=4, threshold=20)}\n"
+                f"grad =\n{np.array2string(self.grad, precision=4, threshold=20)}\n")
