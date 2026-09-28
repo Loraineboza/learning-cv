@@ -1,4 +1,6 @@
-# from pathlib import Path
+#17M params 
+
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -166,5 +168,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
