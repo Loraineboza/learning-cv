@@ -55,15 +55,15 @@ if __name__== "__main__":
 
     d_test = ImageFolder("dataset/test", train=False, transform=transforms)
     test_data = data.DataLoader(d_test, batch_size=500, shuffle=False)
-    Q = 0
-
+    
+    correct = 0
     model.eval()
 
     for x_test, y_test in test_data:
         with torch.no_grad():
             p = model(x_test)
             p = torch.argmax(p, dim=1)
-            Q += torch.sum(p == y_test).item()
+            correct += torch.sum(p == y_test).item()
 
-    Q /= len(d_test)
-    print(Q)
+    correct /= len(d_test)
+    print(f"acc test = {correct}")
