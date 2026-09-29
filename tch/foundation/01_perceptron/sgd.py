@@ -15,7 +15,7 @@ w.requires_grad_(True)
 x = torch.arange(0, 3.0, 0.1)
 
 y_train = 0.5 * x + 0.2 * torch.sin(2*x) - 3.0
-x_train = torch.tensor([[_x ** _n for _n in range(N)] for _x in x]) #added noise
+x_train = torch.tensor([[_x ** _n for _n in range(N)] for _x in x]) #added the noise
 
 total = len(x)
 # lr = torch.tensor([0.1, 0.01])
