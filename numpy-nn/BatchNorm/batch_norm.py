@@ -17,7 +17,7 @@ class BN:
         if x.ndim == 2:
             keepdims = False 
             axis = 0
-        else x.ndim == 4:
+        elif x.ndim == 4:
             keepdims = True 
             axis = (0, 2, 3)
 
@@ -40,10 +40,8 @@ class BN:
             mean_flat = mean.squeeze() if keepdims else mean 
             var_flat = var.squeeze() if keepdims else var 
 
-            self.running_mean = (1 - self.momentum) * self.running_mean 
-                + self.momentum * mean_flat 
-            self.running_var = (1- self.momentum) * self.running_var + self. 
-                + self.momentum * var_flat
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean_flat 
+            self.running_var = (1- self.momentum) * self.running_var + self.momentum * var_flat
             
             g = gamma if x.ndim == 4 else self.gamma 
             b = beta if x.ndim == 4 else self.beta 
