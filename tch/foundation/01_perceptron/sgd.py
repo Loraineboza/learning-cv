@@ -15,11 +15,11 @@ w.requires_grad_(True)
 x = torch.arange(0, 3.0, 0.1)
 
 y_train = 0.5 * x + 0.2 * torch.sin(2*x) - 3.0
-x_train = torch.tensor([[_x ** _n for _n in range(N)] for _x in x])
+x_train = torch.tensor([[_x ** _n for _n in range(N)] for _x in x]) #added noise
 
 total = len(x)
 # lr = torch.tensor([0.1, 0.01])
-loss_func = torch.nn.MSELoss()
+loss_func = torch.nn.MSELoss(reduction="sum") #эксперимент
 optimizer = optim.SGD(params=[w], lr=0.01, momentum=0.8, nesterov=True)
 
 for i in range(1000):
@@ -27,7 +27,7 @@ for i in range(1000):
     y = model(x_train[k], w)
 
     
-    loss = loss_func(y, y_train[k]) # вместо loss = (y - y_train[k]) ** 2
+    loss = loss_func(y, y_train[k])
     print(f"{i+1}: {loss}") 
 
     loss.backward()
