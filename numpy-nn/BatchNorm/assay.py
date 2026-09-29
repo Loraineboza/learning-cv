@@ -1,4 +1,5 @@
 from batch_norm import BN 
+import numpy as np 
 
 bn = BN(num_features=3)
 
