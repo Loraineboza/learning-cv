@@ -12,7 +12,7 @@ file_format = 'format.json'
 cls = [(255, 255, 255), (0, 0, 255), (0, 255, 0), (255, 0, 0)]
 
 if not os.path.exists(dir_out):
-    os.mkdir(dir_out)
+    os.makedirs(dir_out, exist_ok=True)
     if not os.path.exists(os.path.join(dir_out, "train")):
         os.mkdir(os.path.join(dir_out, "train"))
     if not os.path.exists(os.path.join(dir_out, "test")):
