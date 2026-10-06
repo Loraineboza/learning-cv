@@ -24,36 +24,36 @@ class CifarModel(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(3, 32, 3, padding="same"),
             nn.BatchNorm2d(32),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(32, 64, 3, padding="same"),
             nn.BatchNorm2d(64),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
             nn.MaxPool2d(2,2), #16px
             
             nn.Conv2d(64, 128, 3, padding="same"),
             nn.BatchNorm2d(128),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
             nn.MaxPool2d(2,2), #8px
 
             nn.Conv2d(128, 256, 3, padding="same"),
             nn.BatchNorm2d(256),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(256, 128, 3, padding="same"),
             nn.BatchNorm2d(128),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
             nn.Flatten(1,-1),
             nn.Linear(128 * 8 * 8, 2048),
             nn.Dropout(0.5),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             
             nn.Linear(2048, 32),
             nn.Dropout(0.2),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
 
         ) 
         self.out_layer = nn.Linear(32, 10)
@@ -179,4 +179,4 @@ if __name__ == "__main__":
     if path is not None:
         print(f"Параметры модели успешно сохранены по пути \"{path}\"")
     else:
-        print(f"Параметры не были сохранены. Ошибка = {path}")
+          print(f"Параметры не были сохранены. Ошибка = {path}")
