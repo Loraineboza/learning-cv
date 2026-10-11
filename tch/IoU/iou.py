@@ -40,9 +40,9 @@ def iou(a, b_s) -> np.ndarray:
     s_b = w_b * h_b
     
     
-    _ious = s_i / (s_a + s_b - s_i + eps)
+    IoU = s_i / (s_a + s_b - s_i + eps)
     
-    return _ious
+    return IoU
 
 if __name__ == "__main__":
     box_a = np.array([10, 10, 50, 50])
