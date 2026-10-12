@@ -20,10 +20,10 @@ def nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float) -> np.ndarr
         x2 = np.minimum(boxes[i, 2], boxes[order[1:], 2])
         y2 = np.minimum(boxes[i, 3], boxes[order[1:], 3])
 
-        inter = np.clip(x2 - x1, 0, None) * np.clip(y2 - y1, 0, None)
+        inter = np.maximum(0, x2 - x1) * np.maximum(0, y2 - y1)
 
-        area_i = np.clip(boxes[i, 2] - boxes[i, 0], 0, None) * np.clip(boxes[i, 3] - boxes[i, 1], 0, None)
-        area_j = np.clip(boxes[order[1:], 2] - boxes[order[1:], 0], 0, None) * np.clip(boxes[order[1:], 3] - boxes[order[1:], 1], 0, None)
+        area_i = np.maximum(0, boxes[i, 2] - boxes[i, 0]) * np.maximum(0, boxes[i, 3] - boxes[i, 1])
+        area_j = np.maximum(0, boxes[order[1:], 2] - boxes[order[1:], 0]) * np.maximum(0, boxes[order[1:], 3] - boxes[order[1:], 1])
 
         iou = inter / (area_i + area_j - inter + 1e-7)
 
