@@ -11,7 +11,6 @@ def init_conv(cin, cout, k, rng):
 def init_bn(c):
     return np.ones(c), np.zeros(c)
 
-
 def init_dense(fin, fout, rng):
     return he_normal((fin, fout), rng), np.zeros(fout)
 
